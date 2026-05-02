@@ -110,6 +110,7 @@
             background-color: var(--white);
             border: 2px solid var(--black);
             min-width: 280px;
+            touch-action: none;
         }
 
         /* GRID */
@@ -267,7 +268,7 @@
             <button class="modal-close" id="modal-close">✕</button>
             <h1 class="title" style="text-align:center; margin-bottom:0.5rem;">Swipe</h1>
             <p>
-                Use the <strong>arrow keys</strong> to slide all balls in a direction.<br><br>
+                Use the <strong>arrow keys</strong> (or <strong>swipe on the board</strong>: left / right / up / down) to slide all balls in a direction.<br><br>
                 Balls slide until they hit the <strong>edge</strong>, a <strong>black block</strong>, or another <strong>ball</strong>.<br><br>
                 A ball that rolls onto a <strong>target</strong> locks in place and acts as a blocker for other balls.
             </p>
@@ -538,6 +539,43 @@
     document.addEventListener('keydown', e => {
         const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down' };
         if (map[e.key]) { e.preventDefault(); slide(map[e.key]); }
+    });
+
+    const SWIPE_MIN_PX = 40;
+    let swipePtrId = null;
+    let swipeStartX = 0;
+    let swipeStartY = 0;
+
+    function finishSwipe(clientX, clientY) {
+        const dx = clientX - swipeStartX;
+        const dy = clientY - swipeStartY;
+        if (Math.hypot(dx, dy) < SWIPE_MIN_PX) return;
+        if (Math.abs(dx) >= Math.abs(dy)) {
+            slide(dx > 0 ? 'right' : 'left');
+        } else {
+            slide(dy > 0 ? 'down' : 'up');
+        }
+    }
+
+    wrapper.addEventListener('pointerdown', e => {
+        if (e.button !== 0) return;
+        swipePtrId = e.pointerId;
+        swipeStartX = e.clientX;
+        swipeStartY = e.clientY;
+        try { wrapper.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+
+    wrapper.addEventListener('pointerup', e => {
+        if (e.pointerId !== swipePtrId) return;
+        swipePtrId = null;
+        try { wrapper.releasePointerCapture(e.pointerId); } catch (_) {}
+        finishSwipe(e.clientX, e.clientY);
+    });
+
+    wrapper.addEventListener('pointercancel', e => {
+        if (e.pointerId !== swipePtrId) return;
+        swipePtrId = null;
+        try { wrapper.releasePointerCapture(e.pointerId); } catch (_) {}
     });
 
     undoBtn.addEventListener('click', undo);
